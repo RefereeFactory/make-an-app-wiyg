@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskNest — Keep every to-do in one calm place</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f4ef;
+    --card:#fffdf9;
+    --ink:#2c2a26;
+    --muted:#817c72;
+    --accent:#4a7c59;
+    --accent-soft:#e3efe6;
+    --line:#e8e4db;
+    --warn:#b9553f;
+    --radius:16px;
+    --shadow:0 8px 28px rgba(44,42,38,.08);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.6;
+  }
+  h1,h2,h3{font-family:'Fraunces',Georgia,serif;font-weight:600;line-height:1.2;margin:0}
+  a{color:var(--accent)}
+
+  /* Hero */
+  header.hero{
+    background:linear-gradient(160deg,#4a7c59 0%,#3a6349 100%);
+    color:#fdfbf6;
+    padding:56px 22px 70px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  header.hero::after{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(circle at 80% 10%, rgba(255,255,255,.12), transparent 45%),
+               radial-gradient(circle at 10% 90%, rgba(255,255,255,.08), transparent 40%);
+    pointer-events:none;
+  }
+  .hero .badge{
+    display:inline-block;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;
+    background:rgba(255,255,255,.15);padding:6px 14px;border-radius:999px;margin-bottom:18px;
+  }
+  .hero h1{font-size:clamp(2.1rem,6vw,3.4rem);margin-bottom:14px}
+  .hero p{max-width:560px;margin:0 auto;font-size:1.08rem;opacity:.92}
+
+  main{max-width:720px;margin:-44px auto 0;padding:0 18px 60px}
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:22px;
+    margin-bottom:26px;
+  }
+
+  /* Add form */
+  .add-row{display:flex;gap:10px;flex-wrap:wrap}
+  .add-row .main-input{flex:1 1 220px;min-width:0}
+  label.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  input[type=text],input[type=date],input[type=password],select{
+    font:inherit;color:inherit;
+    padding:12px 14px;border:1px solid var(--line);border-radius:12px;
+    background:#fff;width:100%;
+  }
+  input:focus,select:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  .meta-row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+  .meta-row>*{flex:1 1 140px}
+
+  .btn{
+    font:inherit;font-weight:600;cursor:pointer;
+    border:none;border-radius:12px;padding:12px 20px;min-height:46px;
+    background:var(--accent);color:#fff;transition:transform .12s ease,background .2s ease;
+  }
+  .btn:hover{background:#3d6a4b}
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+  .btn.ghost:hover{background:var(--accent-soft)}
+
+  /* Controls bar */
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .search-wrap{flex:1 1 180px}
+  .filters{display:flex;gap:6px;background:#efece4;border-radius:999px;padding:4px}
+  .filters button{
+    font:inherit;border:none;background:transparent;cursor:pointer;
+    padding:8px 14px;border-radius:999px;color:var(--muted);font-weight:500;min-height:38px;
+  }
+  .filters button.active{background:#fff;color:var(--ink);box-shadow:0 2px 6px rgba(0,0,0,.06)}
+
+  /* Todo list */
+  ul.todos{list-style:none;margin:0;padding:0}
+  li.todo{
+    display:flex;align-items:flex-start;gap:12px;
+    padding:14px 12px;border-radius:12px;border:1px solid transparent;
+    transition:background .15s ease;
+  }
+  li.todo:hover{background:#faf8f2;border-color:var(--line)}
+  li.todo+li.todo{margin-top:2px}
+  .check{
+    appearance:none;width:24px;height:24px;border:2px solid var(--accent);border-radius:7px;
+    cursor:pointer;flex:none;margin-top:3px;position:relative;background:#fff;transition:all .15s;
+  }
+  .check:checked{background:var(--accent)}
+  .check:checked::after{
+    content:"";position:absolute;left:7px;top:3px;width:5px;height:10px;
+    border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg);
+  }
+  .check:focus-visible{outline:2px solid var(--accent-soft);outline-offset:2px}
+  .todo-body{flex:1;min-width:0}
+  .todo-title{font-weight:500;word-break:break-word}
+  .todo.done .todo-title{text-decoration:line-through;color:var(--muted)}
+  .todo-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px}
+  .tag{font-size:.75rem;padding:2px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .tag.cust{background:#eef0f7;color:#4a5a9c}
+  .tag.due{background:#fbeee3;color:var(--warn)}
+  .tag.overdue{background:#f7dcd3;color:#a13a26}
+  .del{
+    background:transparent;border:none;cursor:pointer;color:var(--muted);
+    font-size:1.1rem;padding:6px 8px;border-radius:8px;flex:none;min-height:38px;
+  }
+  .del:hover{color:var(--warn);background:#faeee9}
+
+  .empty{text-align:center;color:var(--muted);padding:34px 10px}
+  .empty .big{font-size:2.4rem;margin-bottom:8px}
+
+  /* Saving indicator */
+  .save-pill{
+    position:fixed;bottom:18px;right:18px;background:var(--ink);color:#fff;
+    padding:8px 16px;border-radius:999px;font-size:.85rem;opacity:0;transform:translateY(8px);
+    transition:all .25s ease;pointer-events:none;z-index:50;
+  }
+  .save-pill.show{opacity:1;transform:translateY(0)}
+
+  /* Stats */
+  .stats{display:flex;gap:16px;justify-content:center;margin-bottom:4px;flex-wrap:wrap}
+  .stat{text-align:center}
+  .stat .n{font-family:'Fraunces',serif;font-size:1.6rem;font-weight:600;color:var(--accent)}
+  .stat .l{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+
+  section.block{margin-bottom:26px}
+  section.block h2{font-size:1.4rem;margin-bottom:10px}
+
+  /* Pay section */
+  .factory-pay-item{
+    display:flex;justify-content:space-between;align-items:center;gap:14px;
+    padding:14px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:#fff;
+  }
+  .factory-pay-name{font-weight:600}
+  .factory-pay-price{color:var(--accent);font-weight:600}
+  .factory-pay-btn{
+    font:inherit;font-weight:600;cursor:pointer;border:none;border-radius:10px;
+    padding:10px 18px;background:var(--accent);color:#fff;min-height:44px;
+  }
+  .factory-pay-btn:hover{background:#3d6a4b}
+
+  /* How it works */
+  .how{background:#efece4;border-radius:var(--radius);padding:24px}
+  .how ol{margin:12px 0 0;padding-left:20px}
+  .how li{margin-bottom:8px}
+  footer{text-align:center;color:var(--muted);font-size:.85rem;padding:30px 18px 50px}
+
+  @media(min-width:760px){
+    main{max-width:760px}
+    .stats{gap:40px}
+  }
+</style>
+<script id="factory-store-sdk">
+window.factory=(function(){
+var K="3cf82521-32c8-4078-9fb0-2df5175f5be3",U="https://canvbkibjgcnqowjtarf.supabase.co/functions/v1/app-market",A="sb_publishable_sMTQKIeFgT1vwjHnU7Gexg_8CCmhtxs";
+function call(b){b.appKey=K;return fetch(U,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+A},body:JSON.stringify(b)}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||("store "+r.status));return d;});});}
+var S={
+put:function(c,i,d){return call({op:"put",collection:c,id:String(i),data:d}).then(function(x){return x.doc?x.doc.data:null;});},
+get:function(c,i){return call({op:"get",collection:c,id:String(i)}).then(function(x){return x.doc?x.doc.data:null;});},
+list:function(c){return call({op:"list",collection:c}).then(function(x){return x.docs.map(function(d){return d.data;});});},
+remove:function(c,i){return call({op:"delete",collection:c,id:String(i)}).then(function(){return true;});},
+unlock:function(code){return call({op:"redeem",code:String(code)}).then(function(x){try{localStorage.setItem("factory_access",x.status);}catch(e){}return x.status;});},
+access:function(){try{return localStorage.getItem("factory_access")||"none";}catch(e){return "none";}}
+};
+var _c=null;try{var h=(location.hash||"").match(/factory_code=([a-z0-9-]+)/i);_c=h?h[1]:localStorage.getItem("factory_code");if(h){history.replaceState(null,"",location.pathname+location.search);}}catch(e){}
+var F={put:S.put,get:S.get,list:S.list,remove:S.remove,unlock:S.unlock,access:S.access};
+F.ready=_c?S.unlock(_c).then(function(s){try{if(s!=="invalid")localStorage.setItem("factory_code",_c);}catch(e){}return s;}).catch(function(){return S.access();}):Promise.resolve(S.access());
+return F;})();
+</script>
+<script id="factory-pay-sdk">
+(function(){
+var R="make-an-app-wiyg",U="https://canvbkibjgcnqowjtarf.supabase.co/functions/v1/app-pay",P=String.fromCharCode(163);
+function call(b){return fetch(U,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||("pay "+r.status));return d;});});}
+function money(p){return P+(Number(p)/100).toFixed(2);}
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=String(x);return e;}
+function say(text,good){var b=document.getElementById("factory-pay-banner");if(!b){b=el("div");b.id="factory-pay-banner";b.setAttribute("role","status");b.style.cssText="position:fixed;left:12px;right:12px;bottom:12px;z-index:2147483000;max-width:520px;margin:0 auto;padding:14px 16px;border-radius:12px;font:600 15px/1.4 system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.35);cursor:pointer;";b.onclick=function(){b.remove();};document.body.appendChild(b);}b.style.background=good?"#0f5132":"#332b00";b.style.color="#fff";b.textContent=text;}
+var OP=null;try{var ph=(location.hash||"").match(/factory_owner=([A-Za-z0-9._-]+)/);if(ph){OP=ph[1];sessionStorage.setItem("factory_owner_pass",OP);history.replaceState(null,"",location.pathname+location.search);}else{OP=sessionStorage.getItem("factory_owner_pass");}}catch(e){}
+var _p=null;function products(){if(!_p)_p=call({op:"products",repo:R,owner_pass:OP});return _p;}
+var C=U.replace(/app-pay$/,"app-crypto-desk");function ccall(b){return fetch(C,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||("pay "+r.status));return d;});});}
+var _o=null;function offer(){if(!_o)_o=ccall({op:"offer",repo:R}).catch(function(){return {active:false,coins:[]};});return _o;}
+function cpanel(x,row,o){var old=row.querySelector(".factory-pay-cpanel");if(old){old.remove();return;}var p=el("div","factory-pay-cpanel");p.style.cssText="flex-basis:100%;padding:10px;border:1px solid currentColor;border-radius:.6em;font-size:.95em;line-height:1.5;";
+var sel=el("select");o.coins.forEach(function(c){var op=el("option","",c.label);op.value=c.coin;sel.appendChild(op);});var em=el("input");em.type="email";em.placeholder="Your email (so the seller can reach you)";em.style.cssText="margin:6px 0;width:100%;box-sizing:border-box;padding:.5em;";
+var go=el("button","factory-pay-btn","SHOW THE AMOUNT");go.type="button";var out=el("div");out.style.marginTop="8px";if(o.notice){var n=el("div","",o.notice);n.style.cssText="opacity:.85;margin-bottom:6px;";p.appendChild(n);}
+p.appendChild(el("div","","Pay "+money(x.price_pence)+" with crypto, straight to the seller's wallet:"));p.appendChild(sel);p.appendChild(em);p.appendChild(go);p.appendChild(out);row.appendChild(p);
+go.onclick=function(){go.disabled=true;out.textContent="Checking the rate with two sources…";ccall({op:"quote",product_id:x.id,coin:sel.value,email:em.value}).then(function(q){var od=q.order;out.textContent="";
+out.appendChild(el("div","","Send exactly"));var amt=el("div","",od.amount+" "+od.coin);amt.style.cssText="font-size:1.4em;font-weight:800;font-family:ui-monospace,Menlo,monospace;";out.appendChild(amt);out.appendChild(el("div","","to this "+od.label+" address of the seller:"));var ad=el("div","",od.address);ad.style.cssText="word-break:break-all;font-family:ui-monospace,Menlo,monospace;padding:.4em;border:1px dashed currentColor;border-radius:.4em;";out.appendChild(ad);
+var cp=el("button","factory-pay-btn","COPY ADDRESS");cp.type="button";cp.onclick=function(){try{navigator.clipboard.writeText(od.address);cp.textContent="COPIED";}catch(e){}};var ca=el("button","factory-pay-btn","COPY AMOUNT");ca.type="button";ca.onclick=function(){try{navigator.clipboard.writeText(od.amount);ca.textContent="COPIED";}catch(e){}};var bar=el("div");bar.style.cssText="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0;";bar.appendChild(cp);bar.appendChild(ca);if(od.uri){var w=document.createElement("a");w.href=od.uri;w.className="factory-pay-btn";w.textContent="OPEN IN WALLET";w.style.textDecoration="none";bar.appendChild(w);}out.appendChild(bar);
+var st=el("div","",q.by_hand?"Waiting for your payment. For this coin the seller checks their wallet and confirms by hand.":"Waiting for your payment. This page watches the ledger for you. Amount valid for "+q.minutes+" minutes.");out.appendChild(st);
+var t=setInterval(function(){ccall({op:"status",id:od.id}).then(function(r){var s=r.order||{};if(s.status==="paid"){clearInterval(t);st.textContent="✓ Paid, thank you. The seller has been told.";say("Paid, thank you: "+x.name+" "+money(x.price_pence),true);try{window.dispatchEvent(new CustomEvent("factory:paid",{detail:{product:x.name,amount_pence:x.price_pence,crypto:true}}));}catch(e){}}
+else if(s.status==="confirmed")st.textContent="Confirmed on the ledger. Finishing…";else if(s.status==="seen")st.textContent="Payment seen on the ledger ("+s.confirmations+" confirmation"+(s.confirmations===1?"":"s")+"). Waiting for the network to confirm it.";else if(s.status==="short")st.textContent="Received "+s.received+" "+s.coin+", less than the amount due. Please send the difference to the same address.";else if(s.status==="expired"){clearInterval(t);st.textContent="This amount has expired. Press SHOW THE AMOUNT again. Coins already sent are still counted when they arrive.";}}).catch(function(){});},20000);
+}).catch(function(e){go.disabled=false;out.textContent=e.message||"Could not get an amount. Nothing is owed.";});};}
+function buy(id,btn){if(btn){btn.disabled=true;}return call({op:"checkout",product_id:id,return_url:location.origin+location.pathname}).then(function(d){location.href=d.url;}).catch(function(e){if(btn){btn.disabled=false;}say(e.message||"Payment could not be started. Nothing was taken.",false);});}
+function mount(host){if(!host||host.getAttribute("data-factory-pay-done"))return Promise.resolve();host.setAttribute("data-factory-pay-done","1");var want=(host.getAttribute("data-factory-pay")||"").trim().toLowerCase();
+return Promise.all([products(),offer()]).then(function(pr){var d=pr[0],o=pr[1]||{};var cryptoOn=!!(o.active&&o.coins&&o.coins.length);var list=(d.products||[]).filter(function(x){return !want||String(x.name).trim().toLowerCase()===want;});host.textContent="";
+if(!list.length&&d.sample&&!d.sample.dismissed&&!want){var S=d.sample,own=!!d.owner;var sp=el("div","factory-pay-item factory-pay-sample");sp.style.position="relative";
+var nm=el("span","factory-pay-name",S.name),pr=el("span","factory-pay-price",money(S.price_pence)),ds=el("span","factory-pay-desc",own?(S.owner_hint||"YOUR SHOP, READY. This is your first product: click the name and the price, type your own, press SAVE. Your visitors then see a Pay button; they pay on a secure card page; the money goes to your own account and The Factory keeps its stated fee. Add more products any time in your Factory account (Your apps -> Products). Not selling? Press the x and it goes; ask Help to bring it back, free."):S.description);
+if(own){nm.contentEditable="true";pr.contentEditable="true";nm.title="Click to change the name";pr.title="Click to change the price";nm.style.outline=pr.style.outline="1px dashed currentColor";nm.style.padding=pr.style.padding="0 .3em";
+var sv=el("button","factory-pay-btn","SAVE");sv.type="button";sv.onclick=function(){var n=(nm.textContent||"").trim(),p=Math.round(parseFloat(String(pr.textContent||"").replace(/[^0-9.]/g,""))*100);if(!n){say("Give the product a name first.",false);return;}if(!(p>=50)){say("A price of at least 50p, please (type it like 12.50).",false);return;}sv.disabled=true;
+call({op:"product-save",repo:R,owner_pass:OP,name:n,price_pence:p}).then(function(){say("Saved. "+n+" is on sale at "+money(p)+".",true);host.removeAttribute("data-factory-pay-done");mount(host);}).catch(function(e){sv.disabled=false;say(e.message||"Could not save.",false);});};
+sp.appendChild(nm);sp.appendChild(ds);sp.appendChild(pr);sp.appendChild(sv);
+if(!d.seller_ready){var gp=el("button","factory-pay-btn","WHERE MY MONEY GOES — set up with Stripe"+(d.payouts_started?" (finish)":""));gp.type="button";gp.style.flexBasis="100%";gp.onclick=function(){gp.disabled=true;call({op:"owner-onboard",repo:R,owner_pass:OP}).then(function(x){location.href=x.url;}).catch(function(e){gp.disabled=false;say(e.message||"Press GET PAID on the Factory instead.",false);});};sp.appendChild(gp);}
+}else{sp.appendChild(nm);sp.appendChild(ds);sp.appendChild(pr);var sb2=el("button","factory-pay-btn","Pay "+money(S.price_pence));sb2.type="button";sb2.onclick=function(){say(S.note||"This is a sample. The owner lists real products in their Factory account; payment then opens on a secure card page.",true);};sp.appendChild(sb2);}
+var x=el("button","factory-pay-close","×");x.type="button";x.title="Hide this";x.setAttribute("aria-label","Hide the sample product");x.style.cssText="position:absolute;top:2px;right:2px;border:0;background:transparent;font-size:1.3em;line-height:1;cursor:pointer;opacity:.7;";
+x.onclick=function(){call({op:"sample-dismiss",repo:R}).then(function(){sp.innerHTML="";sp.appendChild(el("span","factory-pay-soon",S.bye||"You can always bring this facility back by asking Help how."));setTimeout(function(){sp.remove();},9000);}).catch(function(){sp.remove();});};sp.appendChild(x);host.appendChild(sp);return;}
+list.forEach(function(x){var row=el("div","factory-pay-item");row.appendChild(el("span","factory-pay-name",x.name));if(x.description)row.appendChild(el("span","factory-pay-desc",x.description));row.appendChild(el("span","factory-pay-price",money(x.price_pence)));
+if(d.open&&d.seller_ready){var b=el("button","factory-pay-btn","Pay "+money(x.price_pence));b.type="button";b.onclick=function(){buy(x.id,b);};row.appendChild(b);}else if(!cryptoOn){row.appendChild(el("span","factory-pay-soon","Payments open here soon"));}
+if(cryptoOn){var cb=el("button","factory-pay-btn factory-pay-crypto","Pay with crypto");cb.type="button";cb.onclick=function(){cpanel(x,row,o);};row.appendChild(cb);}
+host.appendChild(row);});}).catch(function(){host.textContent="";});}
+function mountAll(){var n=document.querySelectorAll("[data-factory-pay]");for(var i=0;i<n.length;i++)mount(n[i]);}
+function back(){var m=(location.search||"").match(/[?&]paid=([A-Za-z0-9_]+)/);if(!m)return;var v=m[1];try{history.replaceState(null,"",location.pathname+location.hash);}catch(e){}
+if(v==="no"){say("Payment cancelled. Nothing was taken.",false);return;}if(v.indexOf("cs_")!==0)return;var tries=0;
+(function ask(){call({op:"order",session_id:v}).then(function(d){var o=d.order||{};if(o.status==="paid"){say("Paid, thank you: "+o.product_name+" "+money(o.gross_pence),true);try{window.dispatchEvent(new CustomEvent("factory:paid",{detail:{product:o.product_name,amount_pence:o.gross_pence}}));}catch(e){}}
+else if(o.status==="pending"&&++tries<8){setTimeout(ask,2000);}else if(o.status==="pending"){say("Thank you. Your payment is being confirmed.",true);}}).catch(function(){if(++tries<4)setTimeout(ask,2000);});})();}
+var st=document.createElement("style");st.textContent=":where(.factory-pay-item){display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:8px 0}:where(.factory-pay-name){font-weight:600}:where(.factory-pay-desc){flex-basis:100%;opacity:.8;font-size:.92em}:where(.factory-pay-price){margin-left:auto}:where(.factory-pay-btn){cursor:pointer;padding:.6em 1.1em;border-radius:.6em;border:0;font:inherit;font-weight:700}:where(.factory-pay-soon){opacity:.7;font-size:.9em}";document.head.appendChild(st);
+window.factory=window.factory||{};window.factory.pay={products:products,buy:buy,mount:mount};
+function go(){back();mountAll();}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",go);else go();
+})();
+</script>
+</head>
+<body>
+
+<header class="hero">
+  <span class="badge">TaskNest for customer work</span>
+  <h1>Every customer task, kept in one calm place</h1>
+  <p>Jot down what each customer needs, set a due date, and tick things off as you go. Nothing gets lost, and it stays saved for next time you open the app.</p>
+</header>
+
+<main>
+  <div class="panel">
+    <form id="addForm" class="add-row" autocomplete="off">
+      <label class="sr" for="task">Task</label>
+      <input class="main-input" type="text" id="task" placeholder="What needs doing? e.g. Send revised quote" required>
+      <button class="btn" type="submit">Add task</button>
+      <div class="meta-row" style="flex-basis:100%">
+        <div>
+          <label class="sr" for="customer">Customer name</label>
+          <input type="text" id="customer" placeholder="Customer (optional)">
+        </div>
+        <div>
+          <label class="sr" for="due">Due date</label>
+          <input type="date" id="due" aria-label="Due date">
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="stats" id="stats" aria-live="polite">
+      <div class="stat"><div class="n" id="statOpen">0</div><div class="l">Open</div></div>
+      <div class="stat"><div class="n" id="statDone">0</div><div class="l">Done</div></div>
+      <div class="stat"><div class="n" id="statDue">0</div><div class="l">Overdue</div></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="search-wrap">
+      <label class="sr" for="search">Search tasks</label>
+      <input type="text" id="search" placeholder="Search tasks or customers…">
+    </div>
+    <div class="filters" role="group" aria-label="Filter tasks">
+      <button data-f="all" class="active">All</button>
+      <button data-f="active">Active</button>
+      <button data-f="done">Done</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <ul class="todos" id="list" aria-live="polite"></ul>
+  </div>
+
+  <section class="block" style="text-align:right">
+    <button class="btn ghost" id="clearDone">Clear completed</button>
+  </section>
+
+  <section class="block panel">
+    <h2>Need more power?</h2>
+    <p style="color:var(--muted);margin-top:4px">Upgrades and extras appear below when offered.</p>
+    <div data-factory-pay></div>
+  </section>
+
+  <section class="how">
+    <h2>How it works</h2>
+    <ol>
+      <li><strong>Add a task</strong> — type what needs doing, and optionally who it's for and when it's due.</li>
+      <li><strong>Stay on top of it</strong> — overdue tasks are flagged, and the counters show your open, done and overdue totals at a glance.</li>
+      <li><strong>Tick it off</strong> — check the box when a task is complete. Use the search and filters to find anything fast.</li>
+      <li><strong>It's saved for you</strong> — every change is stored securely in the cloud, so your list is waiting when you come back on any device.</li>
+    </ol>
+  </section>
+</main>
+
+<div class="save-pill" id="savePill">Saved</div>
+
+<footer>
+  TaskNest · A calm little workspace for keeping track of customer work.
+</footer>
+
+<script>
+  const store = window.factory;
+  let todos = [];
+  let filter = "all";
+  let query = "";
+
+  const listEl = document.getElementById("list");
+  const savePill = document.getElementById("savePill");
+
+  function showSaved(text){
+    savePill.textContent = text || "Saved";
+    savePill.classList.add("show");
+    clearTimeout(savePill._t);
+    savePill._t = setTimeout(()=>savePill.classList.remove("show"), 1400);
+  }
+
+  function isOverdue(t){
+    if(t.done || !t.due) return false;
+    const today = new Date(); today.setHours(0,0,0,0);
+    return new Date(t.due) < today;
+  }
+
+  function fmtDate(d){
+    try{
+      return new Date(d).toLocaleDateString(undefined,{day:"numeric",month:"short"});
+    }catch(e){return d;}
+  }
+
+  function render(){
+    let items = todos.slice().sort((a,b)=>{
+      if(a.done!==b.done) return a.done?1:-1;
+      return (b.created||0)-(a.created||0);
+    });
+    if(filter==="active") items = items.filter(t=>!t.done);
+    if(filter==="done") items = items.filter(t=>t.done);
+    if(query){
+      const q = query.toLowerCase();
+      items = items.filter(t =>
+        (t.text||"").toLowerCase().includes(q) ||
+        (t.customer||"").toLowerCase().includes(q));
+    }
+
+    // stats (from full set)
+    document.getElementById("statOpen").textContent = todos.filter(t=>!t.done).length;
+    document.getElementById("statDone").textContent = todos.filter(t=>t.done).length;
+    document.getElementById("statDue").textContent  = todos.filter(t=>isOverdue(t)).length;
+
+    if(!items.length){
+      listEl.innerHTML = `<li class="empty"><div class="big">🌱</div>${
+        todos.length ? "No tasks match this view." : "No tasks yet — add your first one above."
+      }</li>`;
+      return;
+    }
+
+    listEl.innerHTML = "";
+    items.forEach(t=>{
+      const li = document.createElement("li");
+      li.className = "todo" + (t.done ? " done":"");
+      const overdue = isOverdue(t);
+
+      const cb = document.createElement("input");
+      cb.type="checkbox"; cb.className="check"; cb.checked=!!t.done;
+      cb.setAttribute("aria-label","Mark complete: "+t.text);
+      cb.addEventListener("change",()=>toggle(t.id));
+
+      const body = document.createElement("div");
+      body.className="todo-body";
+      const title = document.createElement("div");
+      title.className="todo-title";
+      title.textContent = t.text;
+      body.appendChild(title);
+
+      const tags = document.createElement("div");
+      tags.className="todo-tags";
+      if(t.customer){
+        const c=document.createElement("span");c.className="tag cust";c.textContent="👤 "+t.customer;tags.appendChild(c);
+      }
+      if(t.due){
+        const d=document.createElement("span");
+        d.className = overdue ? "tag overdue" : "tag due";
+        d.textContent = (overdue?"⚠ Overdue · ":"📅 ")+fmtDate(t.due);
+        tags.appendChild(d);
+      }
+      if(tags.children.length) body.appendChild(tags);
+
+      const del = document.createElement("button");
+      del.className="del"; del.innerHTML="✕";
+      del.setAttribute("aria-label","Delete task: "+t.text);
+      del.addEventListener("click",()=>remove(t.id));
+
+      li.append(cb, body, del);
+      listEl.appendChild(li);
+    });
+  }
+
+  async function save(t){
+    showSaved("Saving…");
+    try{ await store.put("todos", t.id, t); showSaved("Saved"); }
+    catch(e){ showSaved("Couldn't save — retry"); }
+  }
+
+  async function addTask(e){
+    e.preventDefault();
+    const text = document.getElementById("task").value.trim();
+    if(!text) return;
+    const t = {
+      id:String(Date.now()),
+      text,
+      customer:document.getElementById("customer").value.trim(),
+      due:document.getElementById("due").value || "",
+      done:false,
+      created:Date.now()
+    };
+    todos.push(t);
+    render();
+    e.target.reset();
+    document.getElementById("task").focus();
+    await save(t);
+  }
+
+  async function toggle(id){
+    const t = todos.find(x=>x.id===id);
+    if(!t) return;
+    t.done=!t.done;
+    render();
+    await save(t);
+  }
+
+  async function remove(id){
+    todos = todos.filter(x=>x.id!==id);
+    render();
+    showSaved("Removing…");
+    try{ await store.remove("todos", id); showSaved("Removed"); }
+    catch(e){ showSaved("Couldn't remove — retry"); }
+  }
+
+  async function clearDone(){
+    const done = todos.filter(t=>t.done);
+    if(!done.length){ showSaved("Nothing to clear"); return; }
+    todos = todos.filter(t=>!t.done);
+    render();
+    showSaved("Clearing…");
+    try{
+      for(const t of done){ await store.remove("todos", t.id); }
+      showSaved("Cleared");
+    }catch(e){ showSaved("Couldn't clear — retry"); }
+  }
+
+  // Events
+  document.getElementById("addForm").addEventListener("submit", addTask);
+  document.getElementById("clearDone").addEventListener("click", clearDone);
+  document.getElementById("search").addEventListener("input", e=>{ query=e.target.value; render(); });
+  document.querySelectorAll(".filters button").forEach(b=>{
+    b.addEventListener("click",()=>{
+      document.querySelectorAll(".filters button").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      filter=b.dataset.f; render();
+    });
+  });
+
+  // Load
+  async function load(){
+    listEl.innerHTML = `<li class="empty"><div class="big">⏳</div>Loading your tasks…</li>`;
+    try{
+      const data = await store.list("todos");
+      todos = Array.isArray(data) ? data : [];
+    }catch(e){
+      todos = [];
+      listEl.innerHTML = `<li class="empty"><div class="big">😕</div>Couldn't load your tasks. <button class="btn ghost" onclick="location.reload()">Retry</button></li>`;
+      return;
+    }
+    render();
+  }
+  load();
+</script>
+<div id="factory-provenance" style="padding:14px 16px;text-align:center;font:11px/1.7 system-ui,sans-serif;color:#888;opacity:.85;">&#9874; Built with <a href="https://thefactory.refereeinnovations.com" style="color:#888;">The Factory</a> using third-party AI tools &#183; the app owner is responsible for its content &#183; Standard: UK law, aligned with the UN Universal Declaration of Human Rights &#183; <a href="https://thefactory.refereeinnovations.com/terms.html" style="color:#888;">Terms</a></div>
+</body>
+</html>
